@@ -1,19 +1,12 @@
 {
-    "app_root":"",
-    "boot_root":"",
+    "app_path":"D://Git//MCUFirmwareTool//app.bin",
+    "boot_path":"D://Git//MCUFirmwareTool//boot.bin",
     
     "app_info":{
-        "devtype":{
-            "addr":"0x200",
-            "size":16,
-            "type":"string",
-            "value":"hello"
-        },
-
         "version":{
-            "addr":"0x300",
-            "size":4,
+            "addr":"0x00",
             "type":"number",
+            "size":4,
             "value":"0x100"
         }
     },
@@ -24,18 +17,24 @@
             "size":4,
             "type":"number",
             "value":"0x100"
+        },
+
+        "devtype":{
+            "addr":"0x20",
+            "size":16,
+            "type":"string",
+            "value":"hello"
         }
     },
 
     "output":{
         "output_firmware":{
             "desc":"输出固件",
-            "output_name":"",
+            "output_path":"",
             "combine":{
                 "boot":{
                     "start_addr":"0x0000",
                     "max_size":"0x10000",
-                    "padding":"0xFF"
                 },
 
                 "app":{
@@ -48,15 +47,21 @@
                 "desc":"固件合并输出时添加的信息",
                 "verify":{
                     "type":"md5",
-                    "addr":"0x200",
+                    "addr":"0x00",
                     "size":16
+                },
+
+                "bin_size":{
+                    "type":"number",
+                    "addr":"0x00",
+                    "size":4
                 }
             }
         },
 
         "update_app":{
             "desc":"升级固件输出",
-            "output_name":"",
+            "output_path":"",
             "add_info":{
                 "verify":{
                     "type":"md5",
