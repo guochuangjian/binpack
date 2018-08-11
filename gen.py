@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
 import os
 import sys
 import json
@@ -10,11 +11,11 @@ class firmware_tool(object):
     def __init__(self, json_file):
         self.load_json(json_file)
 
-    def __init__(self):
-        self.json_obj = None
+    #def __init__(self):
+        #self.json_obj = None
 
     def load_json(self, json_file):
-        with open(json_file, "r") as fd:
+        with open(json_file, "r", encoding="utf-8") as fd:
              json_str = fd.read()
         self.json_obj = json.loads(json_str)
         
@@ -24,7 +25,7 @@ class firmware_tool(object):
     def str_is_bin(self, str):
         return ("0b" in str) or ("0B" in str)
 
-    def str2num(str):
+    def str2num(self, str):
         if self.str_is_hex(str):
             return int(str, 16)
         elif self.str_is_bin(str):
@@ -38,7 +39,8 @@ class firmware_tool(object):
         return (path, file_name, ext)
 
     def data2hexline(self, addr, data):
-        dbuf = [ord(val) for val in data]
+        #dbuf = [ord(str(val)) for val in data]
+        dbuf = data
         buf  = [len(data) & 0xFF, (addr >> 8) & 0xFF, addr & 0xFF, 0x00]
         buf += dbuf
         buf.append((0x100 - (sum(buf) & 0xFF)) & 0xFF)
@@ -57,15 +59,18 @@ class firmware_tool(object):
 #DD——16byte数据
 #ZZ——校验
     def bin2hex(self, bin_name, start, hex_name):
-        with open(bin_name, 'rb') as f_bin, open(hex_name, 'wb') as f_hex:
+        with open(bin_name, 'rb') as f_bin, \
+            open(hex_name, 'wb') as f_hex:
             if start < 64 * 1024:
                 buf  = [0x00, (start >> 8) & 0xFF, start & 0xFF, 0x05]
             else:
                 addr = start >> 16 
                 buf  = [0x02, 0x00, 0x00, 0x04, addr >> 8, addr & 0xFF]
             buf.append(0x100 - sum(buf))
-            f_hex.writelines(':' + ''.join(['%02x'.upper() % tmp for tmp in buf]) + '\r\n')
-
+            tmp=":".encode() +  \
+                      "".join(['%02x'.upper() % tmp for tmp in buf]).encode() + \
+                      "\r\n".encode()
+            f_hex.write(tmp)
             offset  = start % (64 * 1024)
             wr_addr = 0
             while True:
@@ -74,7 +79,7 @@ class firmware_tool(object):
                     break
                 
                 #write data
-                f_hex.writelines(self.data2hexline(wr_addr, line))
+                f_hex.write(self.data2hexline(wr_addr, line).encode("utf-8"))
                 
                 offset += len(line)
                 if (start + offset) % (64 * 1024) == 0:
@@ -82,13 +87,14 @@ class firmware_tool(object):
                     #write new line
                     wr_addr = 0
                     addr = (start + offset) >> 16 
-                    buf  = [0x02, 0x00, 0x00, 0x04, (addr >> 8) & 0xFF, addr & 0xFF]
-                    buf.append((0x100 - (sum(buf) & 0xFF)) & 0xFF)
-                    f_hex.writelines(':' + ''.join(['%02x'.upper() % tmp for tmp in buf]) + '\r\n')
+                    buf  = [0x02, 0x00, 0x00, 0x04, (addr >> 8) & 0xff, addr & 0xff]
+                    buf.append((0x100 - (sum(buf) & 0xff)) & 0xff)
+                    f_hex.write((':' + ''.join(['%02x'.upper() % tmp for tmp in buf]) \
+                                        + '\r\n').encode("utf-8"))
                 else:
                     wr_addr += len(line)
             #write end
-            f_hex.writelines(":00000001FF\r\n")
+            f_hex.write((":00000001ff\r\n").encode("utf-8"))
         
     def hex2bin(self, hex_path, bin_path):
         hex_fd = open(hex_path, 'rb')
@@ -99,11 +105,14 @@ class firmware_tool(object):
             size    = int(hex_str[1:3], 16)
             dtype   = int(hex_str[7:9], 16)
             if dtype == 0: #Data
-                data = int(hex_str[10 + i, 10 + i + 2], 16) for i in range(size)
+                #data = int(hex_str[10 + i, 10 + i + 2], 16) for i in range(size)
+                for i in range(size):
+                    data += int(hex_str(10 + i, 10 + i + 2), 16)
                 bin_fd.write(data)
             elif dtype == 1: #End
                 pass
             elif dtype == 4: #Start
+                pass
             else:
                 print("hex format error!")
                 break
@@ -111,7 +120,7 @@ class firmware_tool(object):
         hex_fd.close()
         bin_fd.close()
 
-    def bin_combin(self, bin1_name, bin1_start, bin1_size, \
+    def bin_combine(self, bin1_name, bin1_start, bin1_size, \
                     bin2_name, output_bin_name):
         bin1_act_len = os.path.getsize(bin1_name)  
         if bin1_act_len > bin1_size:
@@ -123,7 +132,7 @@ class firmware_tool(object):
             open(output_bin_name, 'wb') as f_bin:
             f_bin.write(f_bin1.read())
             if bin1_rlen:
-                f_bin.write('\xFF' * bin1_rlen)
+                f_bin.write(('\xFF' * bin1_rlen).encode('utf-8'))
             f_bin.write(f_bin2.read())
         return True
 
@@ -131,12 +140,12 @@ class firmware_tool(object):
         fd = open(filename, 'rb')
         md5 = hashlib.md5(fd.read()).hexdigest()
         fd.close()
-        return md5        
+        return bytes(md5, encoding="utf-8")       
 
     def file_crc32_get(self, filename):
         with open(filename, 'rb') as fd:
             crc32 = binascii.crc32(fd.read())
-        return crc32
+        return bytes(crc32, encoding="utf-8")
 
     def number2bin(self, number, size):
         if size == 1:
@@ -156,7 +165,7 @@ class firmware_tool(object):
                 if "desc" == key:
                     continue
 
-                addr  = str2num(info["addr"])
+                addr  = self.str2num(info["addr"])
                 size  = info["size"]
 
                 app_fd.seek(addr, 1)
@@ -165,14 +174,14 @@ class firmware_tool(object):
 
                 value_type  = info["type"]
                 if value_type == "number":
-                    app_fd.write(self.number2bin(str2num(info["value"], size)))
+                    app_fd.write(self.number2bin(self.str2num(info["value"]), size))
                 elif value_type == "string":
                     value = info["value"]
                     if len(value) >= size:
                         wr_str = value[0:size-1] + '\0'
                     else:
                         wr_str = value + (size - len(value)) * '\0'
-                    app_fd.write(wr_str)
+                    app_fd.write(wr_str.encode("utf-8"))
                 elif value_type == "array":
                     print("array not support")
                 else:
@@ -188,19 +197,21 @@ class firmware_tool(object):
         #delete invalid key
         if "desc" in add_info.keys():
             add_info.pop("desc")
-        new_add_info = sorted(add_info.items(), key=lambda x:str2num(x[1]["addr"])
+        new_add_info = sorted(add_info.items(), key=lambda x:self.str2num(x[1]["addr"]))
         rd_addr = 0
-        for key, info in new_add_info.items():
-            addr = str2num(info["addr"])
-            size = str2num(info["size"])
+        for item in new_add_info:
+            key  = item[0]
+            info = item[1]
+            addr = self.str2num(info["addr"])
+            size = info["size"]
             
-            if wr_addr != addr:
+            if rd_addr != addr:
                 bin_fd.seek(addr)
                 rd_addr = addr
-                output_fd.write(bin_fd.read(addr - wr_addr))
+                output_fd.write(bin_fd.read(addr - rd_addr))
                 
             if key == "bin_size":
-                output_fd.write(number2bin(bin_size, size))        
+                output_fd.write(self.number2bin(bin_size, size))        
             elif key == "encrypt":
                 enc_type = info["type"]
                 print("[%s]Not Support Encrypt Type!" % key)
@@ -208,7 +219,7 @@ class firmware_tool(object):
                 break
             elif key == "verify":
                 verify_type = info["type"]
-                if verify_type = "md5":
+                if verify_type == "md5":
                     md5 = self.file_md5_get(bin_path)
                     output_fd.write(md5)
                 elif verify_type == "crc32":
@@ -220,7 +231,7 @@ class firmware_tool(object):
             else: #normal key
                 value_type = info["type"]
                 if value_type == "number":
-                    output_fd.write(self.number2bin(str2num(info["value"], size)))
+                    output_fd.write(self.number2bin(self.str2num(info["value"], size)))
                 elif value_type == "string":
                     value = info["value"]
                     if len(value) >= size:
@@ -237,7 +248,7 @@ class firmware_tool(object):
 
     def __combine_app_and_boot(self, combine_info, output_path):
         if "app" not in combine_info.keys() or \
-            "boot" not in cobine_info.keys():
+            "boot" not in combine_info.keys():
             print("[app] or [boot] not in [combine]")
             return False
         app_info = combine_info["app"]
@@ -260,7 +271,7 @@ class firmware_tool(object):
         app_size  = self.str2num(app_info["max_size"])
 
         self.bin_combine(self.boot_path, boot_addr, boot_size,\
-                         self.app_path, app_addr, output_path)
+                         self.app_path, output_path)
         return True
 
     def __app_output_handle(self, output_info):
@@ -269,18 +280,27 @@ class firmware_tool(object):
             return False
         output_path = output_info["output_path"]
 
+        path, name, ext = self.file_path_info_get(output_path)
+        if ext == ".hex":
+            bin_output_path = path + "//" + name + ".bin"
+        else:
+            bin_output_path = output_path
+
         if "combine" in output_info.keys():
-            if self.__combine_app_and_boot(output_info["combine"], output_path) != True:
+            if self.__combine_app_and_boot(output_info["combine"], bin_output_path) != True:
                 print("Combine APP and Boot Failed!")
                 return False
-
+        
         if "add_info" in output_info.keys():
             if self.__add_info_handle(self.app_path, \
                                       output_info["add_info"], \
-                                      output_path) != True:
+                                      bin_output_path) != True:
                 print("Add Info Failed!")
                 return False
 
+        if ext == ".hex":
+            addr = self.str2num(output_info["output_addr"])
+            self.bin2hex(bin_output_path, addr, output_path)
         return True
 
     def __update_ouput_handle(self, update_info):
@@ -298,7 +318,7 @@ class firmware_tool(object):
 
     def __file2bin(self, path):
         file_path, file_name, file_fmt = self.file_path_info_get(path)
-        if (file_fmt != ".bin") or (file_fmt != ".hex"):
+        if (file_fmt != ".bin") and (file_fmt != ".hex"):
             print("file format error!")
             return False
         if file_fmt == ".hex":
@@ -308,14 +328,11 @@ class firmware_tool(object):
     def __chk_app_and_boot(self):
         if self.__file2bin(self.app_path) != True:
             return False
-        path, name, ext = self.file_path_info_get(self.app_path):
-        self.app_path = path + name + ".bin"
+        path, name, ext = self.file_path_info_get(self.app_path)
 
         if self.boot_path != None:
             if self.__file2bin(self.boot_path) != True:
                 return False
-            path, name, ext = self.file_path_info_get(self.boot_path)
-            self.boot_path = path + name + ".bin"
         return True
 
     def run(self):
@@ -329,7 +346,7 @@ class firmware_tool(object):
             print("No output info!")
             return 
             
-        self.output = json_obj["output"]
+        self.output = self.json_obj["output"]
         
         # self.app_path  = json_obj["app_path"]
         # if "boot_path" in self.json_obj.keys():
@@ -337,16 +354,16 @@ class firmware_tool(object):
         # else:
         #     self.boot_path = None
 
-        path, file_name, ext = self.file_path_info_get(info["app_path"])
-        tmp_app_path = path + file_name + "_tmp" + ext
-        with open(info["app_path"], 'rb') as app_fd, open(tmp_app_path, 'wb') as tmp_fd:
+        path, file_name, ext = self.file_path_info_get(self.json_obj["app_path"])
+        tmp_app_path = path + "//" + file_name + "_tmp" + ext
+        with open(self.json_obj["app_path"], 'rb') as app_fd, open(tmp_app_path, 'wb') as tmp_fd:
             tmp_fd.write(app_fd.read())
         self.app_path = tmp_app_path
 
-        if info["boot_path"] in json_obj.items():
-            path, file_name, ext = self.file_path_info_get(info["boot_path"])
-            tmp_boot_path = path + file_name + "_tmp" + ext
-            with open(info["boot_path"], 'rb') as boot_fd, open(tmp_boot_path, 'wb') as tmp_fd:
+        if "boot_path" in self.json_obj.keys():
+            path, file_name, ext = self.file_path_info_get(self.json_obj["boot_path"])
+            tmp_boot_path = path + "//" + file_name + "_tmp" + ext
+            with open(self.json_obj["boot_path"], 'rb') as boot_fd, open(tmp_boot_path, 'wb') as tmp_fd:
                 tmp_fd.write(boot_fd.read())
         self.boot_path = tmp_boot_path 
 
@@ -372,17 +389,18 @@ class firmware_tool(object):
                 return 
 
         if "update_app" in self.output.keys():
-            if self.__update_output_handle(self.output["update_app"]) != True:
+            if self.__update_ouput_handle(self.output["update_app"]) != True:
                 print("handle update app failed!")
                 return 
 
 
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        json_file = sys.argv[1]
-    else:
-        json_file = input("Please Enter JSON Path:")
+    # if len(sys.argv) > 1:
+    #     json_file = sys.argv[1]
+    # else:
+    #     json_file = input("Please Enter JSON Path:")
+    json_file = "D:/Git//MCUFirmwareTool//samples//demo.json"
     fwt = firmware_tool(json_file)
     fwt.run()
     os.system("pause")
