@@ -93,34 +93,32 @@ def bin2hex(bin_file, addr, hex_file):
         hex_fd.writelines(":00000001FF\r\n")
              
 def bin_combine(bin1_file, bin2_file, bin2_addr, output_bin, padding_byte = 0xFF):
+    bin1_len = os.path.getsize(bin1_file)
     with open(bin1_file, "rb") as bin1_fd, \
         open(bin2_file, "rb") as bin2_fd, \
         open(output_bin, "wb") as output_fd:
         output_fd.write(bin1_fd.read())
-        bin1_len = output_fd.seek(0, 2)
         if bin2_addr < bin1_len:
             print("Error:bin1 file len >= bin2 addr!")
             os.unlink(output_bin)
-
         output_fd.write(struct.pack('B', padding_byte) * (bin2_addr - bin1_len))
         output_fd.write(bin2_fd.read())
         
 if __name__ == "__main__":
-    print("test hex to bin file!")
-    hex_file = input("hex file path:")
-    bin_file = input("generate bin file path:")
-    hex2bin(hex_file, bin_file)
-    print("test hex2bin ok!")
+    # print("test hex to bin file!")
+    # hex_file = input("hex file path:")
+    # bin_file = input("generate bin file path:")
+    # hex2bin(hex_file, bin_file)
+    # print("test hex2bin ok!")
 
-    print("test bin to hex file!")
- 
+    # print("test bin to hex file!")
     # bin_file = "./bb.bin"
     # hex_file = "./output_hh.hex"
     # offset  = 0x8000000
-    bin_file = input("bin file path:")
-    hex_file = input("generate hex file path:")
-    offset   = input("hex file offset:")
-    bin2hex(bin_file, offset, hex_file)
+    # bin_file = input("bin file path:")
+    # hex_file = input("generate hex file path:")
+    # offset   = input("hex file offset:")
+    # bin2hex(bin_file, offset, hex_file)
     print("test bin2hex ok!")
 
     # print("test bin combine!")
@@ -128,5 +126,9 @@ if __name__ == "__main__":
     # bin2_file = input("bin2 file path:")
     # bin_file  = input("combine file path:")
     # addr      = input("bin2 file addr:")
+    # bin1_file = "boot.bin"
+    # bin2_file = "app.bin"
+    # addr = 16* 1024
+    # bin_file = "fw.bin"
     # bin_combine(bin1_file, bin2_file, addr, bin_file)
      
