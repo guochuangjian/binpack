@@ -103,7 +103,7 @@ def bin_combine(bin1_file, bin2_file, bin2_addr, output_bin, padding_byte = 0xFF
             os.unlink(output_bin)
         output_fd.write(struct.pack('B', padding_byte) * (bin2_addr - bin1_len))
         output_fd.write(bin2_fd.read())
-        
+
 if __name__ == "__main__":
     # print("test hex to bin file!")
     # hex_file = input("hex file path:")
