@@ -1,0 +1,19 @@
+{
+    "structure":{
+        "bin_head":{
+            "version":"uint16",
+            "type":"uint8",
+            "name":"string[4]",
+            "key":"int8[16]"
+        }
+    },
+
+    "defines":{
+        "bin_head":{
+            "version":"0x1111",
+            "type":"123",
+            "name":"abcd",
+            "key":"1,2,3,4,5,6,7,8,9,0"
+        }
+    }
+}
